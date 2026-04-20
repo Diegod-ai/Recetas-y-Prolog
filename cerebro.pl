@@ -2,10 +2,6 @@ ingrediente_faltante(Receta, Ingrediente) :-
     ingrediente(Receta, Ingrediente),
     \+ disponible(Ingrediente).
 
-receta_posible(Receta, Categoria) :-
-    receta(Receta, Categoria),
-    \+ ingrediente_faltante(Receta, _).
-
 % ============================================================
 %  RECETAS
 % ============================================================

@@ -12,7 +12,7 @@ def consultar(query):
 
 def validar_categoria(categoria):
     query_validacion = f"receta(_, {categoria})"
-    return bool(consultar(query_validacion)))
+    return bool(consultar(query_validacion))
    
 
 def pedir_indice(maximo):
