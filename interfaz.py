@@ -5,7 +5,6 @@ prolog.consult("cerebro.pl")
 
 # Utilidades
 
-
 def consultar(query):
     return list(prolog.query(query))
     
@@ -138,3 +137,4 @@ def menu():
             case "3":
                 print("gracias por utilizar nuestro sistema") 
                 activo = False
+menu()
