@@ -15,7 +15,7 @@ def normalizar(texto):
     return texto.lower().strip().replace(" ", "_")
 
 def validar_categoria(categoria):
-    query = f"receta(_, {categoria})"
+    query = f"categoria({categoria})"
     return bool(consultar(query))
 
 def ingrediente_existe(ingrediente):

@@ -3,6 +3,14 @@ ingrediente_faltante(Receta, Ingrediente) :-
     \+ disponible(Ingrediente).
 
 % ============================================================
+% CATEGORIAS DE RECETAS
+% ============================================================
+
+categoria(desayuno).
+categoria(almuerzo).
+categoria(cena).
+
+% ============================================================
 %  RECETAS
 % ============================================================
  
