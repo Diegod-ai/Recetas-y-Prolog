@@ -1,140 +1,222 @@
 from pyswip import Prolog
-prolog = Prolog()
-# Cargar archivo Prolog
-prolog.consult("cerebro.pl")
 
-# Utilidades
+prolog = Prolog()
+
+# ============================
+# UTILIDADES
+# ============================
 
 def consultar(query):
-    return list(prolog.query(query))
-    
+    try:
+        return list(prolog.query(query))
+    except Exception as e:
+        print("Error en la consulta:", e)
+        return []
+
+def normalizar(texto):
+    return texto.lower().strip().replace(" ", "_")
 
 def validar_categoria(categoria):
-    query_validacion = f"receta(_, {categoria})"
-    return bool(consultar(query_validacion))
-   
+    query = f"receta(_, {categoria})"
+    return bool(consultar(query))
 
-def pedir_indice(maximo):
-    while True:
-        indice = input("> ")
-        if indice.isdigit():
-            num = int(indice)
-            if 1 <= num <= maximo:
-                return num - 1
-        print("Número no válido, por favor intente de nuevo")
+def ingrediente_existe(ingrediente):
+    query = f"ingrediente(_, {ingrediente})"
+    return bool(consultar(query))
 
 def pausar():
     input("\nPresione Enter para continuar...")
 
+# ============================
+# FUNCIONES DE CONSULTA
+# ============================
+
+def obtener_recetas_por_categoria(categoria):
+    query = f"receta(R, {categoria})"
+    return consultar(query)
+
+def obtener_ingredientes_de_receta(receta, categoria):
+    query = f"receta({receta}, {categoria}), ingrediente({receta}, I)"
+    return consultar(query)
+
+def filtrar_recetas_por_ingredientes(categoria, ingredientes):
+    if not ingredientes:
+        return []
+
+    filtros = ", ".join([f"ingrediente(R, {ing})" for ing in ingredientes])
+    query = f"receta(R, {categoria}), {filtros}"
+    return consultar(query)
+
+# ============================
+# INTERFAZ USUARIO
+# ============================
+
+def pedir_indice(maximo):
+    while True:
+        indice = input("> ").strip()
+
+        if indice.lower() == "salir":
+            return None
+
+        if indice.isdigit():
+            num = int(indice)
+            if 1 <= num <= maximo:
+                return num - 1
+
+        print("Número no válido, escriba un número o 'salir'")
+
+# ----------------------------
 
 def print_categorias():
 
-    categoria = input("Recuerde que actualmente solo existen 3 categorias (desayuno, almuerzo, cena): ").lower().strip()
+    categoria = normalizar(input(
+        "Recuerde que existen: desayuno, almuerzo, cena: "
+    ))
 
-    # Validar categoría
     if not validar_categoria(categoria):
         print("Categoría inválida")
         return
 
-    query1 = f"receta(R, {categoria})"
-    resultados = consultar(query1)
+    resultados = obtener_recetas_por_categoria(categoria)
 
-    if resultados:
-        print(f"\nRecetas disponibles en {categoria}:")
-        for i, r in enumerate(resultados, start=1):
-            print(f"{i}. {r['R']}")
-    else:
+    if not resultados:
         print("No hay recetas en esa categoría")
         return
 
-    print("\nSeleccione una receta escribiendo su número:")
+    print(f"\nRecetas disponibles en {categoria}:")
+    for i, r in enumerate(resultados, start=1):
+        print(f"{i}. {r['R']}")
+
+    print("\nSeleccione una receta (o escriba 'salir'):")
 
     indice = pedir_indice(len(resultados))
+
+    if indice is None:
+        return
+
     receta = resultados[indice]['R']
 
-    query2  = f"receta({receta}, {categoria}), ingrediente({receta}, I)"
-    ingredientes = consultar(query2)
+    ingredientes = obtener_ingredientes_de_receta(receta, categoria)
 
     if ingredientes:
         print(f"\nIngredientes de {receta}:")
         for r in ingredientes:
             print(f"- {r['I']}")
     else:
-        print("No se encontraron ingredientes para esa receta")
+        print("No se encontraron ingredientes")
 
     pausar()
-    
+
+# ----------------------------
+
 def print_ingredientes():
 
-    categoria = input(
+    categoria = normalizar(input(
         "Ingrese una categoria (desayuno, almuerzo, cena): "
-    ).lower().strip()
+    ))
 
-    # Validar categoría
     if not validar_categoria(categoria):
         print("Categoría inválida")
         return
 
     ingredientes_usuario = []
 
-    print("\nEmpiece a ingresar ingredientes uno por uno.")
-    print("Escriba 'salir' para terminar.\n")
+    print("\nIngrese ingredientes uno por uno.")
+    print("Comandos:")
+    print("- salir  -> terminar")
+    print("- reset  -> borrar todo")
+    print("- undo   -> eliminar último\n")
 
     while True:
 
-        ingrediente = input("> ").lower().strip()
+        entrada = normalizar(input("> "))
 
-        if ingrediente == "salir":
+        if not entrada:
+            print("Entrada vacía\n")
+            continue
+
+        if entrada == "salir":
             break
 
-        ingredientes_usuario.append(ingrediente)
+        elif entrada == "reset":
+            ingredientes_usuario.clear()
+            print("Lista reiniciada\n")
+            continue
 
-        # Construir parte dinámica de la query
-        filtros = ", ".join(
-            [f"ingrediente(R, {ing})" for ing in ingredientes_usuario]
+        elif entrada == "undo":
+            if ingredientes_usuario:
+                eliminado = ingredientes_usuario.pop()
+                print(f"Se eliminó: {eliminado}\n")
+            else:
+                print("No hay ingredientes\n")
+            continue
+
+        # Validar existencia en Prolog
+        if not ingrediente_existe(entrada):
+            print("Ingrediente no reconocido\n")
+            continue
+
+        # Evitar duplicados
+        if entrada in ingredientes_usuario:
+            print("Ingrediente duplicado\n")
+            continue
+
+        ingredientes_usuario.append(entrada)
+
+        resultados = filtrar_recetas_por_ingredientes(
+            categoria, ingredientes_usuario
         )
 
-        query = f"receta(R, {categoria}), {filtros}"
-
-        resultados = consultar(query)
-
-        print("\nRecetas posibles con los ingredientes actuales:")
+        print("\nRecetas posibles:")
 
         if resultados:
-            # evitar duplicados
-            recetas_unicas = list({r["R"] for r in resultados})
+            recetas_unicas = []
+            for r in resultados:
+                if r["R"] not in recetas_unicas:
+                    recetas_unicas.append(r["R"])
+
             for r in recetas_unicas:
                 print(f"- {r}")
         else:
-            print("No hay recetas con esos ingredientes")
+            print("No hay coincidencias")
+
+        print("\nIngredientes actuales:")
+        for ing in ingredientes_usuario:
+            print(f"- {ing}")
+        print()
 
     pausar()
 
-# Menu de opciones para el usuario
+# ============================
+# MENU PRINCIPAL
+# ============================
 
 def menu():
 
-    activo = True   
+    activo = True
 
     while activo:
 
-        print("\nAqui están todas las posibles consultas que puedes realizar\n"
-            "1. Solo categoria\n"
-            "2. Ingresar ingredientes\n"
-            "3. Salir del programa")
+        print("\nOpciones:")
+        print("1. Ver recetas por categoria")
+        print("2. Buscar por ingredientes")
+        print("3. Salir")
 
-        entrada = input("Digite el numero de la opcion que desea tomar: ")
+        entrada = input("> ").strip()
 
-        while entrada not in ["1", "2", "3"]:
-            print("Opcion no valida, por favor intente de nuevo")
-            entrada = input("Digite el numero de la opcion que desea tomar: ")
+        if entrada == "1":
+            print_categorias()
 
-        match entrada:
-            case "1":
-                 print_categorias()
-            case "2":
-                print_ingredientes()
-            case "3":
-                print("gracias por utilizar nuestro sistema") 
-                activo = False
+        elif entrada == "2":
+            print_ingredientes()
+
+        elif entrada == "3":
+            print("Gracias por usar el sistema")
+            activo = False
+
+        else:
+            print("Opción inválida")
+
+# ============================
+
 menu()
