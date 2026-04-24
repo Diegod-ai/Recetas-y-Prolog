@@ -2,9 +2,7 @@ from pyswip import Prolog
 
 prolog = Prolog()
 
-# ============================
-# UTILIDADES
-# ============================
+# Utilidades generales para evitar romper el sistema con entradas no válidas
 
 def consultar(query):
     try:
@@ -27,9 +25,7 @@ def ingrediente_existe(ingrediente):
 def pausar():
     input("\nPresione Enter para continuar...")
 
-# ============================
-# FUNCIONES DE CONSULTA
-# ============================
+# Utilidades para cada consulta 
 
 def obtener_recetas_por_categoria(categoria):
     query = f"receta(R, {categoria})"
@@ -47,9 +43,7 @@ def filtrar_recetas_por_ingredientes(categoria, ingredientes):
     query = f"receta(R, {categoria}), {filtros}"
     return consultar(query)
 
-# ============================
-# INTERFAZ USUARIO
-# ============================
+# Utilidad para facilitar el uso de índices en la interfaz
 
 def pedir_indice(maximo):
     while True:
@@ -65,7 +59,7 @@ def pedir_indice(maximo):
 
         print("Número no válido, escriba un número o 'salir'")
 
-# ----------------------------
+# consulta por categoria
 
 def print_categorias():
 
@@ -107,7 +101,7 @@ def print_categorias():
 
     pausar()
 
-# ----------------------------
+# Consulta por ingredientes
 
 def print_ingredientes():
 
@@ -187,9 +181,7 @@ def print_ingredientes():
 
     pausar()
 
-# ============================
-# MENU PRINCIPAL
-# ============================
+# Menu
 
 def menu():
 
